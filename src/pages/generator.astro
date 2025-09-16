@@ -1,0 +1,48 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Générateur SVG">
+	<div class="h-screen p-4 bg-base-200">
+		<!-- Top section: SVG preview and code side by side -->
+		<div class="grid grid-cols-2 gap-4 h-2/3 mb-4">
+			<!-- Section 1 : Aperçu SVG -->
+			<div class="card bg-base-100 shadow-xl">
+				<div class="card-body">
+					<div class="flex items-center justify-center h-full bg-base-200 rounded-lg">
+						<svg width="200" height="200">
+							<circle cx="100" cy="100" r="80" fill="#60a5fa" />
+						</svg>
+					</div>
+				</div>
+			</div>
+
+			<!-- Section 2 : Code généré -->
+			<div class="card bg-base-100 shadow-xl">
+				<div class="card-body p-0">
+					<div class="mockup-code h-full">
+						<pre data-prefix="$"><code>svg width="200" height="200"</code></pre>
+						<pre data-prefix=">"><code>circle cx="100" cy="100" r="80"</code></pre>
+						<pre data-prefix=">"><code>fill="#60a5fa"</code></pre>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Bottom section: Prompt input -->
+		<div class="h-1/3">
+			<div class="card bg-base-100 shadow-xl h-full">
+				<div class="card-body">
+					<div class="flex gap-4 items-center h-full">
+						<textarea 
+							class="textarea textarea-bordered flex-1 resize-none" 
+							placeholder="Décrivez votre SVG..." 
+							rows="3"
+						></textarea>
+						<button class="btn btn-primary">Générer</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</Layout>
