@@ -45,6 +45,7 @@ import Layout from "../layouts/Layout.astro";
             <button id="save-button" class="btn btn-sm btn-success" disabled
               >Sauvegarder</button
             >
+            <button class="btn btn-secondary m-2" id="edit-button">Edit</button>
           </div>
         </div>
       </div>
@@ -114,6 +115,42 @@ import Layout from "../layouts/Layout.astro";
     // Réactiver les boutons
     generateButton.disabled = false;
     // editButton.disabled = false;
+  }
+  const editButton = document.getElementById("edit-button");
+
+  async function handleEdit() {
+    let prompt = "";
+    let aiResponse = "";
+    const promptElement = document.getElementById("user-prompt");
+    prompt = promptElement ? promptElement.value : "";
+    console.log("Prompt soumis : ", prompt);
+    // Ajout du prompt de l'utilisateur à la liste
+    promptList.push({ role: "user", content: prompt });
+    const svgContainer = document.getElementById("svg-container");
+    // Afficher un spinner de chargement
+    svgContainer.innerHTML += `<span class="loading loading-ring loading-xl"></span>`;
+    generateButton.disabled = true;
+    editButton.disabled = true;
+    let svgOutput = document.getElementById("svg-output");
+    // Appeler la fonction pour générer le SVG
+    aiResponse = await generateSVG(promptList);
+    // Extraire le SVG de la réponse
+    const svgMatch = aiResponse.content.match(/<svg[\s\S]*?<\/svg>/i);
+    aiResponse.content = svgMatch ? svgMatch[0] : "";
+    console.log("Code SVG généré : ", aiResponse.content);
+    // Ajouter la réponse de l'IA à la liste des prompts
+    promptList.push(aiResponse);
+    // Afficher le SVG généré
+    svgOutput.textContent = aiResponse.content;
+    svgContainer.innerHTML = aiResponse.content;
+    // Réactiver les boutons
+    generateButton.disabled = false;
+    editButton.disabled = false;
+    console.log("Historique des prompts : ", promptList);
+  }
+
+  if (editButton) {
+    editButton.addEventListener("click", handleEdit);
   }
   // async function handleSubmit() {
   //   let prompt = "";
