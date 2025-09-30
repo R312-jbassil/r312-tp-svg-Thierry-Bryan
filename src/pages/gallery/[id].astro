@@ -23,14 +23,14 @@ const svg: SvgRecord = await pb.collection(Collections.Svg).getOne(id);
     </div>
 
     <!-- Partie 2: Zone de chat -->
-    <div class="bg-base-100 p-4 flex flex-col">
+    <div class="bg-base-100 p-4 flex flex-col relative">
       <h2 class="text-lg font-bold mb-4">Chat</h2>
       <div class="divider"></div>
 
       <!-- Historique -->
       <div
         id="chat-history"
-        class="flex flex-col gap-4 overflow-y-auto flex-grow mb-4"
+        class="flex flex-col gap-4 overflow-y-auto flex-grow mb-20"
       >
         {
           JSON.parse(svg.chat_history || "[]").map((msg) => (
@@ -48,48 +48,154 @@ const svg: SvgRecord = await pb.collection(Collections.Svg).getOne(id);
         }
       </div>
 
-      <div class="divider"></div>
-
-      <!-- Input -->
-      <div class="flex gap-2">
-        <textarea
-          id="prompt-input"
-          class="textarea textarea-bordered flex-1"
-          placeholder="Votre message..."></textarea>
-        <button id="send-btn" class="btn btn-primary">Envoyer</button>
-      </div>
+      <!-- Formulaire de chat -->
+      <form
+        id="input-prompt-form"
+        class="flex flex-col gap-2 w-full absolute bottom-0 left-0 right-0 bg-base-300 p-4"
+        method="POST"
+        autocomplete="off"
+      >
+        <input
+          type="hidden"
+          name="history"
+          value={JSON.stringify(svg?.chat_history || "[]")}
+        />
+        <input type="hidden" name="id" value={svg?.id} />
+        <div class="flex items-center gap-2">
+          <input
+            id="prompt-input"
+            name="editPrompt"
+            type="text"
+            class="input flex-grow"
+            placeholder="Enter a prompt to edit the SVG..."
+          />
+          <button class="btn btn-primary" type="submit">Edit</button>
+        </div>
+      </form>
     </div>
   </div>
 </Layout>
 
 <script>
-  let promptList = JSON.parse(`{svg.chat_history}` || "[]");
+  //@ts-nocheck
+  const form = document.getElementById("input-prompt-form");
+  const svgPreview = document.getElementById("svg-container");
+  const chatHistory = document.getElementById("chat-history");
 
-  document.getElementById("send-btn").addEventListener("click", async () => {
-    const input = document.getElementById("prompt-input");
-    const prompt = input.value.trim();
-    if (!prompt) return;
-
-    // Ajouter le message utilisateur
-    promptList.push({ role: "user", content: prompt });
-
-    // Générer nouveau SVG
+  // Fonction pour générer le SVG à partir du prompt
+  async function generateSVG(promptList) {
     const response = await fetch("/api/generateSVG", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(promptList),
     });
-
     const data = await response.json();
-    promptList.push({ role: "assistant", content: data.svg });
+    return data.svg;
+  }
 
-    // Mettre à jour l'affichage
-    document.getElementById("svg-container").innerHTML = data.svg;
+  // Fonction pour mettre à jour le SVG dans PocketBase
+  async function update(updatedData) {
+    const response = await fetch("/api/updateSVG", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedData),
+    });
+    return response;
+  }
 
-    // Vider l'input
-    input.value = "";
+  // Écouteur d'événement pour le formulaire de soumission
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
 
-    // Recharger la page pour voir l'historique
-    location.reload();
+    // Dans votre script, modifiez cette partie :
+    let prompt = {
+      role: "user",
+      content: `Current SVG: ${svgPreview.innerHTML}\n\nModification request: ${formData.get("editPrompt")}`,
+    };
+
+    // Récupérez l'historique des messages (CORRECTION ICI)
+    let historyString = formData.get("history");
+    let history = [];
+
+    try {
+      history = JSON.parse(historyString || "[]");
+      // S'assurer que c'est un tableau
+      if (!Array.isArray(history)) {
+        history = [];
+      }
+    } catch (error) {
+      console.error("Erreur parsing history:", error);
+      history = [];
+    }
+
+    history.push(prompt); // Maintenant ça marche
+
+    // Réinitialisez le champ de saisie
+    document.getElementById("prompt-input").value = "";
+
+    // Affichez un indicateur de chargement
+    svgPreview.innerHTML += `<span class="loading loading-ring loading-xl"></span>`;
+
+    // Ajoutez le prompt à l'historique du chat
+    chatHistory.innerHTML += `
+      <div class="chat chat-start">
+        <div class="chat-bubble bg-primary text-primary-content">
+          <pre>${prompt.content}</pre>
+        </div>
+        <div class="chat-footer opacity-60 text-xs mt-1">user</div>
+      </div>
+    `;
+
+    try {
+      // Appelez la fonction pour générer le SVG
+      let aiResponse = await generateSVG(history);
+      history.push({ role: "assistant", content: aiResponse });
+
+      // Extraire le SVG de la réponse
+      const svgMatch = aiResponse.match(/<svg[\s\S]*?<\/svg>/i);
+      aiResponse = svgMatch ? svgMatch[0] : "";
+
+      console.log("svgCode: ", aiResponse);
+
+      // Mettez à jour l'affichage du SVG
+      svgPreview.innerHTML = aiResponse;
+
+      // Ajoutez le code SVG à l'historique du chat
+      chatHistory.innerHTML += `
+        <div class="chat chat-end">
+          <div class="chat-bubble bg-secondary text-secondary-content">
+            <pre>${aiResponse}</pre>
+          </div>
+          <div class="chat-footer opacity-60 text-xs mt-1">assistant</div>
+        </div>
+      `;
+
+      // Mettre à jour dans PocketBase
+      const response = await update({
+        id: formData.get("id"),
+        code_svg: aiResponse,
+        chat_history: JSON.stringify(history),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log("SVG updated successfully");
+      } else {
+        console.error("Failed to update SVG:", data.error);
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      chatHistory.innerHTML += `
+        <div class="chat chat-start">
+          <div class="chat-bubble bg-error text-error-content">
+            <pre>Erreur: ${error.message}</pre>
+          </div>
+        </div>
+      `;
+    }
+
+    form.reset();
   });
 </script>
