@@ -1,0 +1,95 @@
+---
+// filepath: c:\Users\bryan\Documents\GitHub\MMI2\r312-tp-svg-Thierry-Bryan\src\pages\gallery\[id].astro
+import Layout from "../../layouts/Layout.astro";
+import pb from "../../utils/pb";
+import { Collections, type SvgRecord } from "../../utils/pocketbase-types";
+
+const id = Astro.params.id;
+const svg: SvgRecord = await pb.collection(Collections.Svg).getOne(id);
+---
+
+<Layout title={`SVG - ${svg.name}`}>
+  <div class="grid grid-cols-2 gap-4 p-4 h-screen">
+    <!-- Partie 1: Affichage du SVG -->
+    <div class="bg-base-100 p-4">
+      <h2 class="text-lg font-bold mb-4">SVG</h2>
+      <div class="divider"></div>
+      <div
+        id="svg-container"
+        class="flex justify-center items-center h-96 bg-base-200"
+      >
+        <div set:html={svg.code_svg} />
+      </div>
+    </div>
+
+    <!-- Partie 2: Zone de chat -->
+    <div class="bg-base-100 p-4 flex flex-col">
+      <h2 class="text-lg font-bold mb-4">Chat</h2>
+      <div class="divider"></div>
+
+      <!-- Historique -->
+      <div
+        id="chat-history"
+        class="flex flex-col gap-4 overflow-y-auto flex-grow mb-4"
+      >
+        {
+          JSON.parse(svg.chat_history || "[]").map((msg) => (
+            <div
+              class={`chat ${msg.role === "user" ? "chat-start" : "chat-end"}`}
+            >
+              <div
+                class={`chat-bubble ${msg.role === "user" ? "bg-primary text-primary-content" : "bg-secondary text-secondary-content"}`}
+              >
+                <pre>{msg.content}</pre>
+              </div>
+              <div class="chat-footer opacity-60 text-xs mt-1">{msg.role}</div>
+            </div>
+          ))
+        }
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Input -->
+      <div class="flex gap-2">
+        <textarea
+          id="prompt-input"
+          class="textarea textarea-bordered flex-1"
+          placeholder="Votre message..."></textarea>
+        <button id="send-btn" class="btn btn-primary">Envoyer</button>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  let promptList = JSON.parse(`{svg.chat_history}` || "[]");
+
+  document.getElementById("send-btn").addEventListener("click", async () => {
+    const input = document.getElementById("prompt-input");
+    const prompt = input.value.trim();
+    if (!prompt) return;
+
+    // Ajouter le message utilisateur
+    promptList.push({ role: "user", content: prompt });
+
+    // Générer nouveau SVG
+    const response = await fetch("/api/generateSVG", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(promptList),
+    });
+
+    const data = await response.json();
+    promptList.push({ role: "assistant", content: data.svg });
+
+    // Mettre à jour l'affichage
+    document.getElementById("svg-container").innerHTML = data.svg;
+
+    // Vider l'input
+    input.value = "";
+
+    // Recharger la page pour voir l'historique
+    location.reload();
+  });
+</script>

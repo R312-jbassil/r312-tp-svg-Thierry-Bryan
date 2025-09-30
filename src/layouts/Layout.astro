@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import Menu from "../components/menu.astro"
 ---
 <!doctype html>
 <html lang="en" data-theme="light" class="h-full">
@@ -11,6 +12,7 @@ import "../styles/global.css";
 		<title>Astro Basics</title>
 	</head>
 	<body class="h-full">
+		<Menu />
 		<div class="h-full flex flex-col min-h-0">
 			<div class="flex-1 min-h-0">
 				<slot />
