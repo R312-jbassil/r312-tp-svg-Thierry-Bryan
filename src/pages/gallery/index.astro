@@ -1,0 +1,94 @@
+---
+// filepath: c:\Users\bryan\Documents\GitHub\MMI2\r312-tp-svg-Thierry-Bryan\src\pages\gallery\index.astro
+import Layout from "../../layouts/Layout.astro";
+import Menu from "../../components/menu.astro";
+---
+
+<Layout title="Galerie SVG">
+  <Menu />
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-6">Mes SVG</h1>
+
+    <!-- Loading -->
+    <div id="loading" class="flex justify-center py-8">
+      <span class="loading loading-spinner loading-lg"></span>
+    </div>
+
+    <!-- Grid des SVG -->
+    <div
+      id="svg-grid"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden"
+    >
+      <!-- Les cartes SVG seront ajoutées ici -->
+    </div>
+
+    <!-- Message si aucun SVG -->
+    <div id="empty" class="text-center py-8 hidden">
+      <p class="text-lg">Aucun SVG trouvé</p>
+      <a href="/generator" class="btn btn-primary mt-4">Créer un SVG</a>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  async function loadSVGs() {
+    const loading = document.getElementById("loading");
+    const grid = document.getElementById("svg-grid");
+    const empty = document.getElementById("empty");
+
+    try {
+      const response = await fetch("/api/recoverSVG");
+      const data = await response.json();
+
+      console.log("Données récupérées:", data); // Pour déboguer
+
+      loading.classList.add("hidden");
+
+      if (data.svgs && data.svgs.length > 0) {
+        grid.classList.remove("hidden");
+
+        data.svgs.forEach((svg, index) => {
+          const card = document.createElement("div");
+          card.className = "card bg-base-100 shadow-xl";
+          card.setAttribute("data-svg-code", svg.code_svg); // Stocker le code SVG
+          card.innerHTML = `
+            <div class="card-body">
+              <h2 class="card-title">${svg.name || "Sans nom"}</h2>
+              <div class="bg-base-200 p-4 rounded">
+                ${svg.code_svg || "SVG invalide"}
+              </div>
+              <div class="card-actions justify-end">
+                <button class="btn btn-sm btn-outline" onclick="copyCode(${index})">Copier</button>
+              </div>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      } else {
+        empty.classList.remove("hidden");
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      loading.innerHTML = '<p class="text-error">Erreur de chargement</p>';
+    }
+  }
+
+  window.copyCode = function (index) {
+    const cards = document.querySelectorAll("#svg-grid .card");
+    const card = cards[index];
+    if (card) {
+      const svgCode = card.getAttribute("data-svg-code");
+      navigator.clipboard
+        .writeText(svgCode)
+        .then(() => {
+          alert("Code copié !");
+        })
+        .catch(() => {
+          alert("Impossible de copier le code");
+        });
+    }
+  };
+
+  // Charger au démarrage
+  loadSVGs();
+</script>
