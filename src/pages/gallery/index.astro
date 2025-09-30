@@ -47,7 +47,8 @@ import Layout from "../../layouts/Layout.astro";
 
         data.svgs.forEach((svg, index) => {
           const card = document.createElement("div");
-          card.className = "card bg-base-100 shadow-xl";
+          card.className =
+            "card bg-base-100 shadow-xl cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-200";
           card.setAttribute("data-svg-code", svg.code_svg); // Stocker le code SVG
           card.innerHTML = `
             <div class="card-body">
@@ -60,6 +61,10 @@ import Layout from "../../layouts/Layout.astro";
               </div>
             </div>
           `;
+          card.addEventListener("click", () => {
+            window.location.href = `/gallery/${svg.id}`;
+          });
+
           grid.appendChild(card);
         });
       } else {
