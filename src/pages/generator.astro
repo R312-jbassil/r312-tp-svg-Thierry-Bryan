@@ -40,7 +40,11 @@ import Layout from "../layouts/Layout.astro";
               class="textarea textarea-bordered flex-1 resize-none"
               placeholder="Décrivez votre SVG..."
               rows="3"></textarea>
-            <button id="generate-button" class="btn btn-primary">Générer</button>
+            <button id="generate-button" class="btn btn-primary">Générer</button
+            >
+            <button id="save-button" class="btn btn-sm btn-success" disabled
+              >Sauvegarder</button
+            >
           </div>
         </div>
       </div>
@@ -50,39 +54,88 @@ import Layout from "../layouts/Layout.astro";
 
 <script>
   //@ts-nocheck
-
+  let promptList = [];
   async function generateSVG(prompt) {
     console.log("Generating SVG for prompt:", prompt);
     const res = await fetch("/api/generateSVG", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify(prompt),
     });
     const data = await res.json();
     return data.svg;
   }
 
+  async function saveSVG(name, svgCode) {
+    try {
+      const response = await fetch("/api/saveSVG", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, svgCode }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Erreur sauvegarde:", error);
+      throw error;
+    }
+  }
   async function handleSubmit() {
     let prompt = "";
-    let svgCode = "";
+    let aiResponse = "";
     const promptElement = document.getElementById("user-prompt");
     prompt = promptElement ? promptElement.value : "";
-    console.log("submitted: ", prompt); // message affiché sur votre console d'inspecteur dans le navigateur
-    
+    console.log("submitted: ", prompt);
+    // Réinitialiser la liste des prompts
+    promptList.length = 0;
+    promptList.push({ role: "user", content: prompt });
     const svgContainer = document.getElementById("svg-container");
-    let svgOutput = document.getElementById("svg-output");
-    const generateButton = document.getElementById("generate-button");
-    
-    // Ajouter le loading spinner et désactiver le bouton
+    // Afficher un spinner
     svgContainer.innerHTML = `<span class="loading loading-ring loading-xl"></span>`;
     generateButton.disabled = true;
-    
-    svgCode = await generateSVG(prompt);
-    console.log("svgCode: ", svgCode);
-    svgOutput.textContent = svgCode;
-    svgContainer.innerHTML = svgCode;
+    // editButton.disabled = true;
+    let svgOutput = document.getElementById("svg-output");
+    // Appeler la fonction pour générer le SVG
+    aiResponse = await generateSVG(promptList);
+    // Extraire le SVG de la réponse
+    const svgMatch = aiResponse.content.match(/<svg[\s\S]*?<\/svg>/i);
+    aiResponse.content = svgMatch ? svgMatch[0] : "";
+    console.log("svgCode: ", aiResponse.content);
+    // Ajouter la réponse de l'IA à la liste des prompts
+    promptList.push(aiResponse);
+    // Afficher le SVG généré
+    svgOutput.textContent = aiResponse.content;
+    svgContainer.innerHTML = aiResponse.content;
+    // Réactiver les boutons
     generateButton.disabled = false;
+    // editButton.disabled = false;
   }
+  // async function handleSubmit() {
+  //   let prompt = "";
+  //   let svgCode = "";
+  //   const promptElement = document.getElementById("user-prompt");
+  //   prompt = promptElement ? promptElement.value : "";
+  //   console.log("submitted: ", prompt); // message affiché sur votre console d'inspecteur dans le navigateur
+
+  //   const svgContainer = document.getElementById("svg-container");
+  //   let svgOutput = document.getElementById("svg-output");
+  //   const generateButton = document.getElementById("generate-button");
+
+  //   // Ajouter le loading spinner et désactiver le bouton
+  //   svgContainer.innerHTML = `<span class="loading loading-ring loading-xl"></span>`;
+  //   generateButton.disabled = true;
+
+  //   svgCode = await generateSVG(prompt);
+  //   console.log("svgCode: ", svgCode);
+  //   svgOutput.textContent = svgCode;
+  //   svgContainer.innerHTML = svgCode;
+  //   generateButton.disabled = false;
+  // }
   const generateButton = document.getElementById("generate-button");
   if (generateButton) {
     generateButton.addEventListener("click", handleSubmit);

@@ -1,0 +1,116 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Bibliothèque SVG">
+  <div class="min-h-screen p-4 bg-base-200">
+    <div class="container mx-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Bibliothèque SVG</h1>
+        <a href="/generator" class="btn btn-primary">Créer un nouveau SVG</a>
+      </div>
+
+      <div id="loading" class="flex justify-center">
+        <span class="loading loading-ring loading-lg"></span>
+      </div>
+
+      <div
+        id="svg-grid"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden"
+      >
+        <!-- Les SVG seront affichés ici -->
+      </div>
+
+      <div id="empty-state" class="text-center py-12 hidden">
+        <h2 class="text-xl text-gray-500 mb-4">Aucun SVG sauvegardé</h2>
+        <a href="/generator" class="btn btn-primary">Créer votre premier SVG</a>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  //@ts-nocheck
+
+  async function loadSVGs() {
+    try {
+      const response = await fetch("/api/getSVGs");
+      const data = await response.json();
+
+      const loading = document.getElementById("loading");
+      const grid = document.getElementById("svg-grid");
+      const emptyState = document.getElementById("empty-state");
+
+      loading.classList.add("hidden");
+
+      if (data.svgs && data.svgs.length > 0) {
+        grid.classList.remove("hidden");
+
+        data.svgs.forEach((svg) => {
+          const card = document.createElement("div");
+          card.className = "card bg-base-100 shadow-xl";
+          card.innerHTML = `
+            <div class="card-body">
+              <h2 class="card-title">${svg.name}</h2>
+              <div class="bg-base-200 p-4 rounded-lg flex justify-center">
+                ${svg.svg_code}
+              </div>
+              <p class="text-sm text-gray-500">${svg.prompt || "Pas de prompt"}</p>
+              <div class="card-actions justify-end">
+                <button class="btn btn-sm btn-outline" onclick="copySVG('${svg.id}')">
+                  Copier
+                </button>
+                <button class="btn btn-sm btn-error" onclick="deleteSVG('${svg.id}')">
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      } else {
+        emptyState.classList.remove("hidden");
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      document.getElementById("loading").innerHTML =
+        '<div class="alert alert-error">Erreur de chargement</div>';
+    }
+  }
+
+  window.copySVG = function (id) {
+    // Trouver le SVG et le copier
+    const card = document.querySelector(`[data-id="${id}"]`);
+    if (card) {
+      const svgCode = card.querySelector("svg").outerHTML;
+      navigator.clipboard.writeText(svgCode);
+      // Toast notification
+      const toast = document.createElement("div");
+      toast.className = "toast toast-end";
+      toast.innerHTML = '<div class="alert alert-success">SVG copié!</div>';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    }
+  };
+
+  window.deleteSVG = async function (id) {
+    if (confirm("Êtes-vous sûr de vouloir supprimer ce SVG ?")) {
+      try {
+        const response = await fetch(`/api/deleteSVG`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+
+        if (response.ok) {
+          location.reload();
+        }
+      } catch (error) {
+        console.error("Erreur suppression:", error);
+      }
+    }
+  };
+
+  // Charger les SVG au chargement de la page
+  loadSVGs();
+</script>
