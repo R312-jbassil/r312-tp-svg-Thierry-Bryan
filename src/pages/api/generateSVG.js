@@ -38,7 +38,7 @@ export const POST = async ({ request }) => {
   message.content = svgMatch ? svgMatch[0] : "";
 
   // Retourne une réponse JSON contenant le SVG généré
-  return new Response(JSON.stringify({ svg: message }), {
-    headers: { "Content-Type": "application/json" }, // Définit le type de contenu de la réponse
-  });
+return new Response(JSON.stringify({ svg: message.content }), {
+  headers: { "Content-Type": "application/json" }, // Définit le type de contenu de la réponse
+});
 };

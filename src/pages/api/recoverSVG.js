@@ -1,4 +1,4 @@
-import pb from "../../js/pocketbase";
+import pb from "../../utils/pb";
 
 export const GET = async () => {
   try {

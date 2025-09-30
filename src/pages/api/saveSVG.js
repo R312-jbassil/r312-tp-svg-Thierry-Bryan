@@ -1,30 +1,25 @@
-import pb from '../../js/pocketbase';
-export const POST = async ({ request }) => {
+import pb from "../../utils/pb.js";
+import { Collections } from "../../utils/pocketbase-types.js";
+
+export async function POST({ request }) {
+  const data = await request.json();
+  console.log("Received data to save:", data);
+
   try {
-    const { prompt, svg } = await request.json();
-    if (!prompt || !svg) {
-      return new Response(JSON.stringify({ error: 'Prompt ou SVG manquant.' }), { status: 400 });
-    }
+    const record = await pb.collection(Collections.Svg).create(data);
+    console.log("SVG saved with ID:", record.id);
 
-    // Adresse de l'API PocketBase (adapter si besoin)
-    const pbUrl = process.env.PB_URL || 'http://127.0.0.1:8090';
-    const collection = 'code_svg';
-
-    // Création de l'enregistrement dans PocketBase
-    const res = await fetch(`${pbUrl}/api/collections/${collection}/records`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, svg_code: svg }),
+    return new Response(JSON.stringify({ success: true, id: record.id }), {
+      headers: { "Content-Type": "application/json" },
     });
-
-    if (!res.ok) {
-      const err = await res.text();
-      return new Response(JSON.stringify({ error: err }), { status: 500 });
-    }
-
-    const data = await res.json();
-    return new Response(JSON.stringify({ success: true, id: data.id }), { status: 200 });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+  } catch (error) {
+    console.error("Error saving SVG:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      {
+        headers: { "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
   }
-};
+}
