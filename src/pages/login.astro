@@ -1,15 +1,24 @@
 ---
-import Layout from "../layouts/Layout.astro";
-
 if (Astro.locals.user) {
   // Si l'utilisateur est déjà connecté, on le redirige vers la page d'accueil
   return Astro.redirect("/");
 }
 ---
-<Layout>
-    <div class="card w-full max-w-md shadow-xl bg-base-100 flex flex-col mx-auto mt-20">
+
+<html lang="en" data-theme="light">
+  <head>
+    <title>Login</title>
+    <meta name="viewport" content="width=device-width" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@3.8.0/dist/full.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+  </head>
+  <body class="min-h-screen flex items-center justify-center bg-base-200">
+    <div class="card w-full max-w-md shadow-xl bg-base-100">
       <div class="card-body">
-        <h1 class="card-title text-3xl mb-4 justify-center text-primary">Connexion</h1>
+        <h1 class="card-title text-3xl mb-4 justify-center">Connexion</h1>
         <!-- Formulaire de connexion -->
         <form id="login-form" class="flex flex-col gap-4">
           <input
@@ -34,7 +43,8 @@ if (Astro.locals.user) {
         <p id="status" class="mt-4 text-center text-error"></p>
       </div>
     </div>
-</Layout>
+  </body>
+</html>
 
 <script>
   //@ts-nocheck

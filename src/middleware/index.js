@@ -1,28 +1,35 @@
+import pb from "../utils/pb.js"; // ← AJOUTER CETTE LIGNE
+
 export const onRequest = async (context, next) => {
+    console.log("Middleware exécuté pour la route:", context.url.pathname);
+    
   const cookie = context.cookies.get("pb_auth")?.value;
+
   if (cookie) {
-    pb.authStore.loadFromCookie(cookie); // Charge les infos d'auth depuis le cookie
+    pb.authStore.loadFromCookie(cookie);
     if (pb.authStore.isValid) {
-      // Si le token est valide, ajoute les données utilisateur dans Astro.locals
       context.locals.user = pb.authStore.record;
     }
   }
 
-  // Pour les routes API, on exige l'authentification sauf pour /api/login
+  // Pour les routes API
   if (context.url.pathname.startsWith("/api/")) {
     if (!context.locals.user && context.url.pathname !== "/api/login") {
-      // Si l'utilisateur n'est pas connecté, on retourne une erreur 401 (non autorisé)
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
       });
     }
-    return next(); // Continue le traitement normal
+    return next();
   }
 
-  // Pour les autres pages, si l'utilisateur n'est pas connecté, on le redirige vers /login
+  // Pour les autres pages
   if (!context.locals.user) {
-    if (context.url.pathname !== "/login" && context.url.pathname !== "/")
+    if (context.url.pathname !== "/login" && context.url.pathname !== "/") {
       return Response.redirect(new URL("/login", context.url), 303);
+    }
   }
-    return next(); // Continue le traitement normal
+  console.log("Utilisateur authentifié:", context.locals.user);
+  
+
+  return next();
 };
