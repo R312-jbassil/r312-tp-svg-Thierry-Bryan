@@ -1,0 +1,134 @@
+---
+if (Astro.locals.user) {
+  // Si l'utilisateur est déjà connecté, rediriger vers l'accueil
+  return Astro.redirect("/");
+}
+---
+
+<html lang="en" data-theme="light">
+  <head>
+    <title>Inscription</title>
+    <meta name="viewport" content="width=device-width" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@3.8.0/dist/full.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+  </head>
+  <body class="min-h-screen flex items-center justify-center bg-base-200">
+    <div class="card w-full max-w-md shadow-xl bg-base-100">
+      <div class="card-body">
+        <h1 class="card-title text-3xl mb-4 justify-center">Inscription</h1>
+
+        <!-- Formulaire d'inscription -->
+        <form id="signup-form" class="flex flex-col gap-4">
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            required
+            class="input input-bordered"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Mot de passe (min. 8 caractères)"
+            required
+            minlength="8"
+            class="input input-bordered"
+          />
+          <input
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirmer le mot de passe"
+            required
+            minlength="8"
+            class="input input-bordered"
+          />
+          <button type="submit" class="btn btn-primary w-full">
+            Créer mon compte
+          </button>
+        </form>
+
+        <!-- Zone d'affichage du statut -->
+        <p id="status" class="mt-4 text-center"></p>
+
+        <!-- Lien vers la connexion -->
+        <div class="divider">OU</div>
+        <div class="text-center">
+          <span class="text-sm">Déjà un compte ?</span>
+          <a href="/login" class="link link-primary ml-1">Se connecter</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+<script>
+  //@ts-nocheck
+  const form = document.getElementById("signup-form");
+  const status = document.getElementById("status");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    status.textContent = "Création du compte...";
+    status.className = "mt-4 text-center text-info";
+
+    const formData = new FormData(form);
+    const email = formData.get("email");
+    const password = formData.get("password");
+    const confirmPassword = formData.get("confirmPassword");
+
+    // Vérifications côté client
+    if (password !== confirmPassword) {
+      status.textContent = "❌ Les mots de passe ne correspondent pas";
+      status.className = "mt-4 text-center text-error";
+      return;
+    }
+
+    if (password.length < 8) {
+      status.textContent =
+        "❌ Le mot de passe doit contenir au moins 8 caractères";
+      status.className = "mt-4 text-center text-error";
+      return;
+    }
+
+    try {
+      // Envoi des données à l'API
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          confirmPassword: confirmPassword,
+        }),
+        credentials: "include",
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Succès
+        status.textContent = "✅ " + result.message;
+        status.className = "mt-4 text-center text-success";
+
+        // Sauvegarder les infos utilisateur
+        localStorage.setItem("user", JSON.stringify(result.user));
+
+        // Redirection après 1.5 secondes
+        setTimeout(() => {
+          window.location.href = "/generator";
+        }, 1500);
+      } else {
+        // Erreur
+        status.textContent = "❌ " + result.error;
+        status.className = "mt-4 text-center text-error";
+      }
+    } catch (error) {
+      console.error("Erreur inscription:", error);
+      status.textContent = "❌ Erreur de connexion au serveur";
+      status.className = "mt-4 text-center text-error";
+    }
+  });
+</script>

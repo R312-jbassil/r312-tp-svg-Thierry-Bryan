@@ -1,11 +1,46 @@
+---
+// filepath: c:\Users\bryan\Documents\GitHub\MMI2\r312-tp-svg-Thierry-Bryan\src\components\menu.astro
+const user = Astro.locals.user;
+---
+
 <!-- Header -->
 <div class="navbar bg-base-100 rounded-box mb-6">
   <div class="flex-1">
-    <h1 class="text-xl font-bold"></h1>Galerie SVG</h1>
+    <h1 class="text-xl font-bold">Galerie SVG</h1>
   </div>
-  <div class="flex-none">
-    <a href="/generator" class="btn btn-primary">Créer un SVG</a>
-    <a href="/gallery" class="btn btn-ghost ml-2">Galerie</a>
-    <a href="/" class="btn btn-ghost ml-2">Accueil</a>
+  <div class="flex gap-2 items-center">  <!-- Changé "item-center" en "items-center" -->
+    <a href="/" class="btn btn-ghost">Accueil</a>
+
+    {
+      !user && (
+        <>
+          <a href="/login" class="btn btn-ghost">
+            Se connecter
+          </a>
+          <a href="/signup" class="btn btn-primary">
+            S'inscrire
+          </a>
+        </>
+      )
+    }
+
+    {
+      user && (
+        <>
+          <a href="/generator" class="btn btn-primary">
+            Créer un SVG
+          </a>
+          <a href="/library" class="btn btn-ghost">
+            Ma Bibliothèque
+          </a>
+          <span class="text-sm font-medium flex items-center px-3">👤 {user.email}</span>  <!-- Ajouté flex items-center px-3 -->
+          <form method="POST" action="/api/logout" class="m-0">
+            <button type="submit" class="btn btn-ghost">
+              Déconnexion
+            </button>
+          </form>
+        </>
+      )
+    }
   </div>
 </div>

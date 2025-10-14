@@ -198,6 +198,15 @@ import Layout from "../layouts/Layout.astro";
   if (saveButton) {
     saveButton.addEventListener("click", async () => {
       try {
+        // Récupérer les informations de l'utilisateur depuis le localStorage
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        // Vérifier que l'utilisateur est connecté
+        if (!user || !user.id) {
+          alert("Erreur : Utilisateur non connecté");
+          return;
+        }
+
         // Demander le nom à l'utilisateur
         const name = prompt("Donnez un nom à votre création :");
         if (!name) return; // Annulé par l'utilisateur
@@ -206,11 +215,12 @@ import Layout from "../layouts/Layout.astro";
         const svgOutput = document.getElementById("svg-output")?.textContent;
         console.log("Préparation de la sauvegarde :", svgOutput);
 
-        // Préparer les données selon le format attendu
+        // Préparer les données selon le format attendu avec l'ID utilisateur
         const params = {
           name: name,
           code_svg: svgOutput || "<svg></svg>",
           chat_history: JSON.stringify(promptList),
+          user: user.id, // AJOUT DE L'ID UTILISATEUR
         };
 
         console.log("Données à sauvegarder :", params);

@@ -1,6 +1,10 @@
 ---
+// filepath: c:\Users\bryan\Documents\GitHub\MMI2\r312-tp-svg-Thierry-Bryan\src\layouts\Layout.astro
 import "../styles/global.css";
 import Menu from "../components/menu.astro";
+
+// Récupération de l'utilisateur comme indiqué dans les consignes
+const user = Astro.locals.user;
 ---
 
 <!doctype html>
@@ -13,16 +17,11 @@ import Menu from "../components/menu.astro";
     <title>Astro Basics</title>
   </head>
   <body class="h-full">
-    <Menu />
-{
-    Astro.locals.user && (
-      <form method="POST" action="/api/logout" class="m-0 p-0 ml-4">
-        <button type="submit" class="btn btn-primary">
-          Logout
-        </button>
-      </form>
-    )
-  }
+    <div class="flex justify-between items-center bg-base-200 p-2">
+      <Menu />
+
+    </div>
+
     <div class="h-full flex flex-col min-h-0">
       <div class="flex-1 min-h-0">
         <slot />
