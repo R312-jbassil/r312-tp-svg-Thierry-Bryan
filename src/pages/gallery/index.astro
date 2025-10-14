@@ -1,97 +1,335 @@
 ---
 // filepath: c:\Users\bryan\Documents\GitHub\MMI2\r312-tp-svg-Thierry-Bryan\src\pages\gallery\index.astro
 import Layout from "../../layouts/Layout.astro";
+import { ui } from "../../i18n/ui.js";
+
+const locale = (Astro.locals.lang as "en" | "fr") ?? "fr";
+const t = ui[locale].gallery;
+const navT = ui[locale].nav;
+const commonT = ui[locale].common;
+const errorsT = ui[locale].errors;
 ---
 
-<Layout title="Galerie SVG">
+<Layout title={t.title}>
   <div class="container mx-auto p-4">
-    <h1 class="text-3xl font-bold mb-6">Mes SVG</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold">{t.title}</h1>
+      <a href="/generator" class="btn btn-primary">{navT.create}</a>
+    </div>
 
     <!-- Loading -->
     <div id="loading" class="flex justify-center py-8">
       <span class="loading loading-spinner loading-lg"></span>
+      <span class="ml-2 text-lg">{commonT.loading}</span>
     </div>
 
     <!-- Grid des SVG -->
     <div
       id="svg-grid"
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      style="display: none;"
     >
       <!-- Les cartes SVG seront ajoutées ici -->
     </div>
 
     <!-- Message si aucun SVG -->
-    <div id="empty" class="text-center py-8 hidden">
-      <p class="text-lg">Aucun SVG trouvé</p>
-      <a href="/generator" class="btn btn-primary mt-4">Créer un SVG</a>
+    <div id="empty" class="text-center py-8" style="display: none;">
+      <div class="hero">
+        <div class="hero-content text-center">
+          <div class="max-w-md">
+            <h2 class="text-2xl font-bold text-gray-500 mb-4">{t.noSVG}</h2>
+            <p class="mb-6 text-gray-400">
+              Commencez dès maintenant à créer vos propres SVG personnalisés
+            </p>
+            <a href="/generator" class="btn btn-primary btn-lg">
+              {t.createFirst}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message d'erreur -->
+    <div id="error-message" class="alert alert-error" style="display: none;">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="stroke-current shrink-0 h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+        ></path>
+      </svg>
+      <span id="error-text">{errorsT.loadingError}</span>
     </div>
   </div>
+
+  <!-- Toast pour les notifications -->
+  <div id="toast-container" class="toast toast-end"></div>
 </Layout>
 
-<script>
+<script define:vars={{ t, commonT, errorsT }}>
+  //@ts-nocheck
+
+  // Variables globales pour les traductions
+  window.translations = {
+    gallery: t,
+    common: commonT,
+    errors: errorsT,
+  };
+
   async function loadSVGs() {
     const loading = document.getElementById("loading");
     const grid = document.getElementById("svg-grid");
     const empty = document.getElementById("empty");
+    const errorMessage = document.getElementById("error-message");
 
     try {
       const response = await fetch("/api/recoverSVG");
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
+      console.log("Données récupérées:", data);
 
-      console.log("Données récupérées:", data); // Pour déboguer
-
-      loading.classList.add("hidden");
+      // Masquer le loading
+      loading.style.display = "none";
 
       if (data.svgs && data.svgs.length > 0) {
-        grid.classList.remove("hidden");
+        // Afficher la grille
+        grid.style.display = "grid";
+
+        // Vider la grille avant d'ajouter les nouvelles cartes
+        grid.innerHTML = "";
 
         data.svgs.forEach((svg, index) => {
-          const card = document.createElement("div");
-          card.className =
-            "card bg-base-100 shadow-xl cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-200";
-          card.setAttribute("data-svg-code", svg.code_svg); // Stocker le code SVG
-          card.innerHTML = `
-            <div class="card-body">
-              <h2 class="card-title">${svg.name || "Sans nom"}</h2>
-              <div class="bg-base-200 p-4 rounded">
-                ${svg.code_svg || "SVG invalide"}
-              </div>
-              <div class="card-actions justify-end">
-                <button class="btn btn-sm btn-outline" onclick="copyCode(${index})">Copier</button>
-              </div>
-            </div>
-          `;
-          card.addEventListener("click", () => {
-            window.location.href = `/gallery/${svg.id}`;
-          });
-
+          const card = createSVGCard(svg, index);
           grid.appendChild(card);
         });
       } else {
-        empty.classList.remove("hidden");
+        // Afficher le message vide
+        empty.style.display = "block";
       }
     } catch (error) {
       console.error("Erreur:", error);
-      loading.innerHTML = '<p class="text-error">Erreur de chargement</p>';
+
+      // Masquer le loading
+      loading.style.display = "none";
+
+      // Afficher le message d'erreur
+      const errorText = document.getElementById("error-text");
+      errorText.textContent = `${window.translations.errors.loadingError}: ${error.message}`;
+      errorMessage.style.display = "flex";
     }
   }
 
+  function createSVGCard(svg, index) {
+    const card = document.createElement("div");
+    card.className =
+      "card bg-base-100 shadow-xl cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-300";
+    card.setAttribute("data-svg-code", svg.code_svg);
+    card.setAttribute("data-svg-id", svg.id);
+
+    // Créer le nom avec fallback
+    const svgName = svg.name || window.translations.common.save || "Sans nom";
+
+    // Date de création formatée
+    const createdDate = svg.created
+      ? new Date(svg.created).toLocaleDateString()
+      : "";
+
+    card.innerHTML = `
+      <div class="card-body">
+        <h2 class="card-title text-lg">
+          ${svgName}
+          ${svg.user ? '<div class="badge badge-outline badge-sm">Adopté</div>' : '<div class="badge badge-warning badge-sm">À adopter</div>'}
+        </h2>
+        <div class="bg-base-200 p-4 rounded-lg flex justify-center items-center min-h-[150px]">
+          ${svg.code_svg || '<div class="text-error">SVG invalide</div>'}
+        </div>
+        ${createdDate ? `<p class="text-sm text-gray-500 mt-2">Créé le ${createdDate}</p>` : ""}
+        <div class="card-actions justify-end mt-4">
+          <div class="tooltip" data-tip="${window.translations.gallery.copy}">
+            <button class="btn btn-sm btn-outline" onclick="copyCode(${index})" aria-label="${window.translations.gallery.copy}">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              ${window.translations.gallery.copy}
+            </button>
+          </div>
+          
+          <div class="tooltip" data-tip="${window.translations.gallery.viewDetails}">
+            <button class="btn btn-sm btn-primary" onclick="viewDetails('${svg.id}')" aria-label="${window.translations.gallery.viewDetails}">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              ${window.translations.gallery.viewDetails}
+            </button>
+          </div>
+
+          ${
+            !svg.user
+              ? `
+          <div class="tooltip" data-tip="${window.translations.gallery.adopt}">
+            <button class="btn btn-sm btn-success" onclick="adoptSVG('${svg.id}', ${index})" aria-label="${window.translations.gallery.adopt}">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v1H8V5z" />
+              </svg>
+              ${window.translations.gallery.adopt}
+            </button>
+          </div>
+          `
+              : ""
+          }
+        </div>
+      </div>
+    `;
+
+    return card;
+  }
+
+  function showToast(message, type = "success") {
+    const toastContainer = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = `alert alert-${type} mb-2`;
+
+    const icon =
+      type === "success"
+        ? `<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`
+        : `<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+
+    toast.innerHTML = `${icon}<span>${message}</span>`;
+    toastContainer.appendChild(toast);
+
+    // Auto-remove après 3 secondes
+    setTimeout(() => {
+      toast.remove();
+    }, 3000);
+  }
+
+  // Fonction pour copier le code SVG
   window.copyCode = function (index) {
     const cards = document.querySelectorAll("#svg-grid .card");
     const card = cards[index];
+
     if (card) {
       const svgCode = card.getAttribute("data-svg-code");
-      navigator.clipboard
-        .writeText(svgCode)
-        .then(() => {
-          alert("Code copié !");
-        })
-        .catch(() => {
-          alert("Impossible de copier le code");
-        });
+
+      if (svgCode) {
+        navigator.clipboard
+          .writeText(svgCode)
+          .then(() => {
+            showToast(window.translations.gallery.copySuccess, "success");
+          })
+          .catch((err) => {
+            console.error("Erreur copie:", err);
+            showToast(window.translations.gallery.copyError, "error");
+          });
+      } else {
+        showToast(window.translations.gallery.copyError, "error");
+      }
     }
   };
 
-  // Charger au démarrage
-  loadSVGs();
+  // Fonction pour voir les détails
+  window.viewDetails = function (id) {
+    if (id) {
+      window.location.href = `/gallery/${id}`;
+    }
+  };
+
+  // Fonction pour adopter un SVG
+  window.adoptSVG = async function (id, index) {
+    if (!confirm(window.translations.gallery.adoptConfirm)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/adoptSVG`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+
+      if (response.ok) {
+        showToast(`SVG adopté avec succès !`, "success");
+
+        // Recharger la page après 1 seconde
+        setTimeout(() => {
+          location.reload();
+        }, 1000);
+      } else {
+        const error = await response.json();
+        showToast(
+          window.translations.gallery.adoptError +
+            ": " +
+            (error.message || "Erreur inconnue"),
+          "error"
+        );
+      }
+    } catch (error) {
+      console.error("Erreur adoption:", error);
+      showToast(
+        window.translations.gallery.adoptError + ": " + error.message,
+        "error"
+      );
+    }
+  };
+
+  // Fonction de recherche/filtre (bonus)
+  window.filterSVGs = function (searchTerm) {
+    const cards = document.querySelectorAll("#svg-grid .card");
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+      const title = card.querySelector(".card-title").textContent.toLowerCase();
+      const isVisible = title.includes(searchTerm.toLowerCase());
+
+      card.style.display = isVisible ? "block" : "none";
+      if (isVisible) visibleCount++;
+    });
+
+    // Afficher/masquer le message "aucun résultat"
+    const empty = document.getElementById("empty");
+    const grid = document.getElementById("svg-grid");
+
+    if (visibleCount === 0 && cards.length > 0) {
+      grid.style.display = "none";
+      empty.style.display = "block";
+      empty.querySelector("h2").textContent =
+        `Aucun résultat pour "${searchTerm}"`;
+    } else if (visibleCount > 0) {
+      grid.style.display = "grid";
+      empty.style.display = "none";
+    }
+  };
+
+  // Charger les SVG au démarrage de la page
+  document.addEventListener("DOMContentLoaded", () => {
+    loadSVGs();
+  });
+
+  // Optionnel: Recharger toutes les 30 secondes
+  setInterval(() => {
+    console.log("Rechargement automatique des SVG...");
+    loadSVGs();
+  }, 30000);
 </script>
+
+<style>
+  .card:hover {
+    transform: translateY(-4px);
+  }
+
+  .tooltip:before {
+    white-space: nowrap;
+  }
+</style>

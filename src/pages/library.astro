@@ -1,15 +1,22 @@
 ---
 // filepath: c:\Users\bryan\Documents\GitHub\MMI2\r312-tp-svg-Thierry-Bryan\src\pages\library.astro
+export const prerender = false;
+
 import Layout from "../layouts/Layout.astro";
+import { ui } from "../i18n/ui.js";
 import pb from "../utils/pb.js";
 import { Collections } from "../utils/pocketbase-types.js";
+
+const locale = Astro.locals.lang as 'en' | 'fr' ?? 'fr';
+const t = ui[locale].library;
+const commonT = ui[locale].common;
 
 // Récupère l'utilisateur connecté
 const user = Astro.locals.user;
 
 // Récupère les SVG de l'utilisateur connecté
-let svgList = [];
-let error = null;
+let svgList: any[] = [];
+let error: Error | null = null;
 
 if (user) {
   try {
@@ -20,12 +27,12 @@ if (user) {
     console.log("SVG list for user:", user.email, svgList);
   } catch (err) {
     console.error("Erreur récupération SVG:", err);
-    error = err;
+    error = err as Error;
   }
 }
 ---
 
-<Layout title="Bibliothèque SVG">
+<Layout title={t.title}>
   <meta
     http-equiv="Cache-Control"
     content="no-cache, no-store, must-revalidate"
@@ -35,15 +42,15 @@ if (user) {
   <div class="min-h-screen p-4 bg-base-200">
     <div class="container mx-auto">
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold">Ma Bibliothèque SVG</h1>
-        <a href="/generator" class="btn btn-primary">Créer un nouveau SVG</a>
+        <h1 class="text-3xl font-bold">{t.title}</h1>
+        <a href="/generator" class="btn btn-primary">{ui[locale].nav.create}</a>
       </div>
 
       {
         user && (
           <div class="alert alert-info mb-4">
             <span>
-              Bibliothèque de {user.email} - {svgList.length} SVG(s)
+              {t.userLibrary} {user.email} - {svgList.length} {t.personalSVGs}
             </span>
           </div>
         )
@@ -52,7 +59,7 @@ if (user) {
       {
         error && (
           <div class="alert alert-error mb-4">
-            <span>Erreur de chargement: {error.message}</span>
+            <span>{ui[locale].errors.loadingError}: {(error as any)?.message || ui[locale].common.error}</span>
           </div>
         )
       }
@@ -61,33 +68,33 @@ if (user) {
         svgList.length > 0 ? (
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {svgList.map((svg) => (
-              <div class="card bg-base-100 shadow-xl" key={svg.id}>
+              <div class="card bg-base-100 shadow-xl" data-key={svg.id}>
                 <div class="card-body">
-                  <h2 class="card-title">{svg.name || "Sans nom"}</h2>
+                  <h2 class="card-title">{svg.name || ui[locale].common.save}</h2>
                   <div class="bg-base-200 p-4 rounded-lg flex justify-center">
                     <div set:html={svg.code_svg} />
                   </div>
                   <p class="text-sm text-gray-500">
-                    Créé le {new Date(svg.created).toLocaleDateString()}
+                    {t.createdOn} {new Date(svg.created).toLocaleDateString()}
                   </p>
                   <div class="card-actions justify-end">
                     <button
                       class="btn btn-sm btn-outline"
                       onclick={`copySVG('${svg.id}', \`${svg.code_svg.replace(/`/g, "\\`")}\`)`}
                     >
-                      Copier
+                      {ui[locale].common.copy}
                     </button>
                     <a
                       href={`/gallery/${svg.id}`}
                       class="btn btn-sm btn-primary"
                     >
-                      Voir/Éditer
+                      {ui[locale].common.view}/{ui[locale].common.edit}
                     </a>
                     <button
                       class="btn btn-sm btn-error"
                       onclick={`deleteSVG('${svg.id}')`}
                     >
-                      Supprimer
+                      {ui[locale].common.delete}
                     </button>
                   </div>
                 </div>
@@ -96,9 +103,9 @@ if (user) {
           </div>
         ) : (
           <div class="text-center py-12">
-            <h2 class="text-xl text-gray-500 mb-4">Aucun SVG sauvegardé</h2>
+            <h2 class="text-xl text-gray-500 mb-4">{t.noSVG}</h2>
             <a href="/generator" class="btn btn-primary">
-              Créer votre premier SVG
+              {t.createFirst}
             </a>
           </div>
         )

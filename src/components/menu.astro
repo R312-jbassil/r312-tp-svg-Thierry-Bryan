@@ -1,24 +1,28 @@
 ---
 // filepath: c:\Users\bryan\Documents\GitHub\MMI2\r312-tp-svg-Thierry-Bryan\src\components\menu.astro
+import { ui } from "../i18n/ui.js";
+
 const user = Astro.locals.user;
+const locale = (Astro.locals.lang as "en" | "fr") ?? "fr";
+const t = ui[locale].nav;
 ---
 
 <!-- Header -->
 <div class="navbar bg-base-100 rounded-box mb-6">
   <div class="flex-1">
-    <h1 class="text-xl font-bold">Galerie SVG</h1>
+    <h1 class="text-xl font-bold">{t.title || "Galerie SVG"}</h1>
   </div>
-  <div class="flex gap-2 items-center">  <!-- Changé "item-center" en "items-center" -->
-    <a href="/" class="btn btn-ghost">Accueil</a>
+  <div class="flex gap-2 items-center">
+    <a href="/" class="btn btn-ghost">{t.home}</a>
 
     {
       !user && (
         <>
           <a href="/login" class="btn btn-ghost">
-            Se connecter
+            {t.login}
           </a>
           <a href="/signup" class="btn btn-primary">
-            S'inscrire
+            {t.signup}
           </a>
         </>
       )
@@ -28,19 +32,34 @@ const user = Astro.locals.user;
       user && (
         <>
           <a href="/generator" class="btn btn-primary">
-            Créer un SVG
+            {t.create}
           </a>
           <a href="/library" class="btn btn-ghost">
-            Ma Bibliothèque
+            {t.library}
           </a>
-          <span class="text-sm font-medium flex items-center px-3">👤 {user.email}</span>  <!-- Ajouté flex items-center px-3 -->
+          <span class="text-sm font-medium flex items-center px-3">
+            👤 {user.email}
+          </span>
           <form method="POST" action="/api/logout" class="m-0">
             <button type="submit" class="btn btn-ghost">
-              Déconnexion
+              {t.logout}
             </button>
           </form>
         </>
       )
     }
+
+    <!-- Sélecteur de langue -->
+    <form method="POST" action={Astro.url.pathname} class="m-0">
+      <select
+        name="language"
+        class="select select-bordered select-sm"
+        onchange="this.form.submit()"
+      >
+        <option disabled selected={!locale}>{t.language}</option>
+        <option value="en" selected={locale === "en"}>English</option>
+        <option value="fr" selected={locale === "fr"}>Français</option>
+      </select>
+    </form>
   </div>
 </div>

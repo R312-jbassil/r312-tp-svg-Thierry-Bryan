@@ -1,8 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { ui } from "../i18n/ui.js";
+
+const locale = (Astro.locals.lang as "en" | "fr") ?? "fr";
+const t = ui[locale].generator;
 ---
 
-<Layout title="Générateur SVG">
+<Layout title={t.title}>
   <div class="h-screen p-4 bg-base-200">
     <!-- Top section: SVG preview and code side by side -->
     <div class="grid grid-cols-2 gap-4 h-2/3 mb-4">
@@ -38,14 +42,17 @@ import Layout from "../layouts/Layout.astro";
             <textarea
               id="user-prompt"
               class="textarea textarea-bordered flex-1 resize-none"
-              placeholder="Décrivez votre SVG..."
+              placeholder={t.promptLabel}
               rows="3"></textarea>
-            <button id="generate-button" class="btn btn-primary">Générer</button
+            <button id="generate-button" class="btn btn-primary"
+              >{t.generateButton}</button
             >
             <button id="save-button" class="btn btn-sm btn-success" disabled
-              >Sauvegarder</button
+              >{t.saveButton}</button
             >
-            <button class="btn btn-secondary m-2" id="edit-button">Edit</button>
+            <button class="btn btn-secondary m-2" id="edit-button"
+              >{t.editButton}</button
+            >
           </div>
         </div>
       </div>
@@ -53,7 +60,7 @@ import Layout from "../layouts/Layout.astro";
   </div>
 </Layout>
 
-<script>
+<script define:vars={{ t }}>
   //@ts-nocheck
   let promptList = [];
   let currentSVG = ""; // AJOUTER CETTE LIGNE
@@ -203,12 +210,12 @@ import Layout from "../layouts/Layout.astro";
 
         // Vérifier que l'utilisateur est connecté
         if (!user || !user.id) {
-          alert("Erreur : Utilisateur non connecté");
+          alert(t.userError);
           return;
         }
 
         // Demander le nom à l'utilisateur
-        const name = prompt("Donnez un nom à votre création :");
+        const name = prompt(t.saveName);
         if (!name) return; // Annulé par l'utilisateur
 
         // Récupérer le code SVG
@@ -229,16 +236,13 @@ import Layout from "../layouts/Layout.astro";
         const result = await saveSVG(params);
 
         if (result.success) {
-          alert("SVG sauvegardé avec succès !");
+          alert(t.saveSuccess);
         } else {
-          alert(
-            "Erreur lors de la sauvegarde : " +
-              (result.error || "Erreur inconnue")
-          );
+          alert(t.saveError + (result.error || "Erreur inconnue"));
         }
       } catch (error) {
         console.error("Erreur complète :", error);
-        alert("Erreur lors de la sauvegarde : " + error.message);
+        alert(t.saveError + error.message);
       }
     });
   }
